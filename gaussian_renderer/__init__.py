@@ -122,17 +122,17 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     scales_np = tensor_to_numpy(scales)
     rotations_np = tensor_to_numpy(rotations)
     cov3D_precomp_np = tensor_to_numpy(cov3D_precomp)
-    write_data_to_file(
-    '/content/gaussian_data.txt',
-    ('means3D', means3D_np),
-    ('means2D', means2D_np),
-    ('spherical harmonics (shs)', shs_np),
-    ('precomputed colors', colors_precomp_np),
-    ('opacity', opacity_np),
-    ('scales', scales_np),
-    ('rotations', rotations_np),
-    ('precomputed 3D covariance', cov3D_precomp_np)
-    )
+    # write_data_to_file(
+    # '/content/gaussian_data.txt',
+    # ('means3D', means3D_np),
+    # ('means2D', means2D_np),
+    # ('spherical harmonics (shs)', shs_np),
+    # ('precomputed colors', colors_precomp_np),
+    # ('opacity', opacity_np),
+    # ('scales', scales_np),
+    # ('rotations', rotations_np),
+    # ('precomputed 3D covariance', cov3D_precomp_np)
+    # )
     
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
