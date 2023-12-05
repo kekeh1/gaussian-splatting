@@ -14,6 +14,24 @@ import math
 from diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 from scene.gaussian_model import GaussianModel
 from utils.sh_utils import eval_sh
+import numpy as np
+ # Example function to convert a tensor to a numpy array and handle None values
+def tensor_to_numpy(tensor):
+  if tensor is not None:
+    return tensor.detach().cpu().numpy() 
+  else:
+    return None
+def write_data_to_file(filename, *args):
+    with open(filename, 'w') as file:
+        for label, data in args:
+            if data is not None:
+                # Write the label to the file
+                file.write(f'{label}:\n')
+                # Flatten the array if it is 3D
+                if data.ndim == 3:
+                    data = data.reshape(-1, data.shape[-1])
+                np.savetxt(file, data, fmt='%f')
+                file.write('\n')
 
 def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, scaling_modifier = 1.0, override_color = None):
     """
@@ -53,6 +71,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     means3D = pc.get_xyz
     means2D = screenspace_points
     opacity = pc.get_opacity
+   
 
     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
     # scaling / rotation by the rasterizer.
@@ -80,6 +99,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
             shs = pc.get_features
     else:
         colors_precomp = override_color
+    
+
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     rendered_image, radii = rasterizer(
@@ -91,7 +112,28 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         scales = scales,
         rotations = rotations,
         cov3D_precomp = cov3D_precomp)
+        # Convert all data to numpy arrays
 
+    means3D_np = tensor_to_numpy(means3D)
+    means2D_np = tensor_to_numpy(means2D)
+    shs_np = tensor_to_numpy(shs)
+    colors_precomp_np = tensor_to_numpy(colors_precomp)
+    opacity_np = tensor_to_numpy(opacity)
+    scales_np = tensor_to_numpy(scales)
+    rotations_np = tensor_to_numpy(rotations)
+    cov3D_precomp_np = tensor_to_numpy(cov3D_precomp)
+    write_data_to_file(
+    '/content/gaussian_data.txt',
+    ('means3D', means3D_np),
+    ('means2D', means2D_np),
+    ('spherical harmonics (shs)', shs_np),
+    ('precomputed colors', colors_precomp_np),
+    ('opacity', opacity_np),
+    ('scales', scales_np),
+    ('rotations', rotations_np),
+    ('precomputed 3D covariance', cov3D_precomp_np)
+    )
+    
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
     return {"render": rendered_image,
