@@ -68,35 +68,24 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
 
-    means3D = pc.get_xyz
-    means2D = screenspace_points
-    opacity = pc.get_opacity
-   
+    max_gaussians = 2000
+    means3D = pc.get_xyz[:max_gaussians]
+    means2D = screenspace_points[:max_gaussians]
+    opacity = pc.get_opacity[:max_gaussians]
 
-    # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
-    # scaling / rotation by the rasterizer.
-    scales = None
-    rotations = None
-    cov3D_precomp = None
-    if pipe.compute_cov3D_python:
-        cov3D_precomp = pc.get_covariance(scaling_modifier)
-    else:
-        scales = pc.get_scaling
-        rotations = pc.get_rotation
+    scales = pc.get_scaling[:max_gaussians] if pc.get_scaling is not None else None
+    rotations = pc.get_rotation[:max_gaussians] if pc.get_rotation is not None else None
+    cov3D_precomp = pc.get_covariance(scaling_modifier)[:max_gaussians] if pipe.compute_cov3D_python else None
 
-    # If precomputed colors are provided, use them. Otherwise, if it is desired to precompute colors
-    # from SHs in Python, do it. If not, then SH -> RGB conversion will be done by rasterizer.
-    shs = None
-    colors_precomp = None
     if override_color is None:
         if pipe.convert_SHs_python:
-            shs_view = pc.get_features.transpose(1, 2).view(-1, 3, (pc.max_sh_degree+1)**2)
-            dir_pp = (pc.get_xyz - viewpoint_camera.camera_center.repeat(pc.get_features.shape[0], 1))
-            dir_pp_normalized = dir_pp/dir_pp.norm(dim=1, keepdim=True)
+            shs_view = pc.get_features.transpose(1, 2).view(-1, 3, (pc.max_sh_degree + 1) ** 2)[:max_gaussians]
+            dir_pp = (means3D - viewpoint_camera.camera_center.repeat(means3D.shape[0], 1))
+            dir_pp_normalized = dir_pp / dir_pp.norm(dim=1, keepdim=True)
             sh2rgb = eval_sh(pc.active_sh_degree, shs_view, dir_pp_normalized)
             colors_precomp = torch.clamp_min(sh2rgb + 0.5, 0.0)
         else:
-            shs = pc.get_features
+            shs = pc.get_features[:max_gaussians]
     else:
         colors_precomp = override_color
     
@@ -114,14 +103,14 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         cov3D_precomp = cov3D_precomp)
         # Convert all data to numpy arrays
 
-    means3D_np = tensor_to_numpy(means3D)
-    means2D_np = tensor_to_numpy(means2D)
-    shs_np = tensor_to_numpy(shs)
-    colors_precomp_np = tensor_to_numpy(colors_precomp)
-    opacity_np = tensor_to_numpy(opacity)
-    scales_np = tensor_to_numpy(scales)
-    rotations_np = tensor_to_numpy(rotations)
-    cov3D_precomp_np = tensor_to_numpy(cov3D_precomp)
+    # means3D_np = tensor_to_numpy(means3D)
+    # means2D_np = tensor_to_numpy(means2D)
+    # shs_np = tensor_to_numpy(shs)
+    # colors_precomp_np = tensor_to_numpy(colors_precomp)
+    # opacity_np = tensor_to_numpy(opacity)
+    # scales_np = tensor_to_numpy(scales)
+    # rotations_np = tensor_to_numpy(rotations)
+    # cov3D_precomp_np = tensor_to_numpy(cov3D_precomp)
     # write_data_to_file(
     # '/content/gaussian_data.txt',
     # ('means3D', means3D_np),
