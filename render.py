@@ -20,7 +20,24 @@ from utils.general_utils import safe_state
 from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args
 from gaussian_renderer import GaussianModel
+def render_single_image(dataset: ModelParams, iteration: int, pipeline: PipelineParams):
+    with torch.no_grad():
+        gaussians = GaussianModel(dataset.sh_degree)
+        scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
 
+        bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
+        background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
+
+        # Get the first camera from the training set
+        camera = scene.getTrainCameras()[0]
+
+        # Render the image from this camera
+        rendering = render(camera, gaussians, pipeline, background)["render"]
+
+        # Save the rendered image
+        render_path = os.path.join(dataset.model_path, "single_render")
+        os.makedirs(render_path, exist_ok=True)
+        torchvision.utils.save_image(rendering, os.path.join(render_path, "rendered_image.png"))
 def render_set(model_path, name, iteration, views, gaussians, pipeline, background):
     render_path = os.path.join(model_path, name, "ours_{}".format(iteration), "renders")
     gts_path = os.path.join(model_path, name, "ours_{}".format(iteration), "gt")
@@ -63,4 +80,5 @@ if __name__ == "__main__":
     # Initialize system state (RNG)
     safe_state(args.quiet)
 
-    render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test)
+    #render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test)
+    render_single_image(model.extract(args), args.iteration, pipeline.extract(args))b  
