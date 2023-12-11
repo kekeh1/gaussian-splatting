@@ -67,10 +67,10 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
-    max_gaussians = 2000
-    means3D = pc.get_xyz[:max_gaussians]
-    means2D = screenspace_points[:max_gaussians]
-    opacity = pc.get_opacity[:max_gaussians]
+  
+    means3D = pc.get_xyz
+    means2D = screenspace_points
+    opacity = pc.get_opacity
    
 
     # If precomputed 3d covariance is provided, use it. If not, then it will be computed from
